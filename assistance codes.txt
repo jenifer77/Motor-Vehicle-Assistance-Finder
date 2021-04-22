@@ -1,0 +1,311 @@
+@@ -0,0 +1,12 @@
+﻿.headerDetails {
+    text-align: center;
+}
+
+.underlinedText {
+    border-bottom: 1px solid gray;
+}
+
+.icon {
+    float: right;
+    color: #172547;
+}
+ 47  ...de-assistance/uow-roadside-assistance/Helper/Contractor/ContractorCompletedTransaction.cs 
+@@ -0,0 +1,47 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web;
+
+namespace uow_roadside_assistance.Helper.Contractor
+{
+    public class ContractorCompletedTransaction
+    {
+        private String _customerFullName;
+        public String CustomerFullName
+        {
+            get { return _customerFullName; }
+        }
+
+        private double _cost;
+        public double Cost
+        {
+            get { return _cost; }
+        }
+
+        private DateTime _transactionDate;
+        public DateTime TransactionDate
+        {
+            get { return _transactionDate; }
+        }
+
+        public String TransactionDateToString
+        {
+            get { return _transactionDate.ToString("yyyy/MM/dd HH:mm:ss"); }
+        }
+
+        private int _transactionID;
+        public int TransactionID
+        {
+            get { return _transactionID; }
+        }
+
+        public ContractorCompletedTransaction(String customerFullName, double cost, DateTime transactionDate, int transactionID)
+        {
+            _customerFullName = customerFullName;
+            _cost = cost;
+            _transactionDate = transactionDate;
+            _transactionID = transactionID;
+        }
+    }
+} 
+ 80  ...istance/uow-roadside-assistance/Scripts/LoggedOn/Contractor/ContractorPastTransactions.js 
+@@ -0,0 +1,80 @@
+﻿window.onload = function () {
+    ContractorService.getUserFromSession(function (session) {
+        if (session == null) {
+            window.location.href = '../../LoggedOff/Home.aspx'
+        } else {
+            var curUser = JSON.parse(session);
+            if (curUser.UserType != 'Contractor') {
+                window.history.back();
+            }
+            else {
+                $('#UserNameLabel').text('Welcome, ' + curUser.FullName);
+
+                loadPastTransactions();
+            }
+        }
+    });
+}
+
+function loadPastTransactions() {
+    ContractorService.getAllPastCompletedTransactions(function (result) {
+        var res = JSON.parse(result);
+
+        for (var i = 0; i < res.length; i++) {
+            addTransactionRow(res[i].CustomerFullName, res[i].Cost, res[i].TransactionDateToString, res[i].TransactionID)
+        }
+    });
+}
+
+function addTransactionRow(customerFullName, cost, transactionDate, transactionID) {
+    //console.log(contractorFullName + ' ' + cost + ' ' + transactionDate + ' ' + transactionID);
+
+    var tr = document.createElement('tr');
+
+    var rowContent =
+        "<th scope = 'row'>" + customerFullName + "</th>" +
+        "<td>$" + cost + "</td>" +
+        "<td>" + transactionDate + "</td>" +
+        "<td>" +
+        "<button class='btn btn-outline-primary' data-toggle='modal' data-target='#ModalCenter' data-transaction='" + transactionID + "'>" +
+        "View Review & Rating" +
+        "</button >" +
+        "</td > ";
+
+    tr.innerHTML = rowContent;
+
+    document.getElementById('pastCompletedTransactionTable').appendChild(tr);
+}
+
+$(document).ready(function () {
+
+    $('#ModalCenter').on('show.bs.modal', function (event) {
+        var button = $(event.relatedTarget) // Button that triggered the modal
+        var transactionID = button.data('transaction') // Extract info from data-* attributes
+
+
+        ContractorService.getReviewAndRating(transactionID, function (result) {
+            var res = JSON.parse(result);
+
+            for (var i = 1; i <= 5; i++) {
+                var starID = '#star' + i;
+                if ($(starID).hasClass('fas')) {
+                    $(starID).removeClass('fas');
+                    $(starID).addClass("far");
+                }
+            }
+
+            for (var i = 1; i <= res.Rating; i++) {
+                var starID = '#star' + i;
+                $(starID).removeClass('far');
+                $(starID).addClass("fas");
+            }
+
+            $('#reviewDesc').val(res.ReviewDesc);
+
+        });
+
+    });
+
+
+}); 
+  79  ...ance/uow-roadside-assistance/WebPages/LoggedOn/Contractor/ContractorPastTransactions.aspx 
+@@ -20,16 +20,18 @@
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+
+    <%--Font Awesome--%>
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.8.1/css/all.css" integrity="sha384-50oBUHEmvpQ+1lW4y57PTFmhCaXp0ML5d60M1M7uH2+nqUivzIebhndOJK28anvf" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.8.1/css/all.css" integrity="sha384-50oBUHEmvpQ+1lW4y57PTFmhCaXp0ML5d60M1M7uH2+nqUivzIebhndOJK28anvf" crossorigin="anonymous"/>
+
+    <%--Page CSS--%>
+    <link rel="stylesheet" href="../../../Css/LoggedOn/Contractor/ContractorNavBar.css" />
+    <link rel="stylesheet" href="../../../Css/LoggedOn/Contractor/ContractorPastTransactions.css" />
+
+    <%--Nav Bar Scripts--%>
+    <script type="text/javascript" src="../../../Scripts/LoggedOn/Contractor/ContractorNavBar.js"></script>
+
+    <%-- Page Scripts --%>
+    <script type="text/javascript" src="../../../Scripts/LoggedOn/Contractor/OnLoadContractor.js"></script>
+    <script type="text/javascript" src="../../../Scripts/LoggedOn/Contractor/ContractorPastTransactions.js"></script>
+
+</head>
+<body>
+@@ -80,7 +82,82 @@
+    </div>
+
+    <%-- Page Content --%>
+    <div class="container">
+        <br /><br />
+        <div class="headerDetails">
+            <h2>
+                <span class="underlinedText" style="text-align:center">
+                    Past Completed Transactions
+                </span>
+                <span class="icon"><i class="fas fa-list-ul" style='font-size:36px'></i></span>
+            </h2>
+        </div>
+
+        <br /><br />
+        <table class="table table-hover">
+            <thead class="thead-light">
+                <tr>
+                    <th scope="col" style="width: 25%" class="sortable">Contractor <i class="fas fa-sort"></i></th>
+                    <th scope="col" style="width: 25%" class="sortable">Cost <i class="fas fa-sort"></i></th>
+                    <th scope="col" style="width: 25%" class="sortable">Transaction Date Time <i class="fas fa-sort"></i></th>
+                    <th scope="col" style="width: 25%" >Review & Rating </th>
+                </tr>
+            </thead>
+            <tbody id="pastCompletedTransactionTable">
+                <%--<tr>
+                    <th scope='row'>Mark Otto</th>
+                    <td>$100</td>
+                    <td>500</td>
+                    <td><button class='btn btn-outline-primary'>View / Modify</button></td>
+                </tr>
+                <tr>
+                    <th scope='row'>Fernando Torres</th>
+                    <td>$90</td>
+                    <td>900</td>
+                    <td><button class='btn btn-outline-primary'>View / Modify</button></td>
+                </tr>--%>
+
+            </tbody>
+        </table>
+
+    </div>
+
+    <%-- Rating Modal --%>
+
+    <div class="modal fade" id="ModalCenter" tabindex="-1" role="dialog" aria-labelledby="ModalCenterTitle" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="ModalCenterTitle"><strong>Review and Rating</strong></h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+              <br />
+            <div id="ratingDiv" class="container-fluid" style="text-align:center">
+                <i id="star1" class="far fa-star fa-3x star" style="color: greenyellow"></i>
+                <i id="star2" class="far fa-star fa-3x star" style="color: greenyellow"></i>
+                <i id="star3" class="far fa-star fa-3x star" style="color: greenyellow"></i>
+                <i id="star4" class="far fa-star fa-3x star" style="color: greenyellow"></i>
+                <i id="star5" class="far fa-star fa-3x star" style="color: greenyellow"></i>
+                <div>
+                    <span id="ratingErrMess" style="color:red; display:inline-block; font-size:20px"></span>
+                </div>
+            </div>
+              <br /><br />
+            <div class="container-fluid" style="text-align:center">
+                <textarea id="reviewDesc" class="form-control" rows="9" placeholder="You can let us know how our service was in details (required)" disabled></textarea>
+                <div>
+                    <span id="reviewErrMess" style="color:red; display:inline-block; font-size:20px"></span>
+                </div>
+                <br />
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+</body>
+</html>
+  30  ...-assistance/uow-roadside-assistance/WebPages/LoggedOn/Contractor/ContractorService.svc.cs 
+@@ -204,6 +204,36 @@ public String getTransactionDetails(int transactionID)
+
+            return new JavaScriptSerializer().Serialize(transaction);
+        }
+
+        //Past Transactions
+        [OperationContract]
+        public String getAllPastCompletedTransactions()
+        {
+            Classes.Contractor contractor = (Classes.Contractor)(HttpContext.Current.Session["New"]);
+
+            ArrayList transactions = TransactionDBData.GetCompletedTransactionsByContractorID(contractor.UserID);
+
+            ArrayList result = new ArrayList();
+
+            foreach (Transaction transaction in transactions)
+            {
+                Classes.Customer customer = CustomerDBData.getCustomerByID(transaction.CustomerID);
+
+                Helper.Contractor.ContractorCompletedTransaction completedTransaction = new ContractorCompletedTransaction(customer.FullName, transaction.Cost, transaction.TransactionDate, transaction.TransactionID);
+
+                result.Add(completedTransaction);
+            }
+
+            return new JavaScriptSerializer().Serialize(result);
+        }
+
+        [OperationContract]
+        public String getReviewAndRating(int transactionID)
+        {
+            Review review = ReviewDBData.getReviewsByTransactionID(transactionID);
+
+            return new JavaScriptSerializer().Serialize(review);
+        }
+    }
+
+}
+  3  uow-roadside-assistance/uow-roadside-assistance/uow-roadside-assistance.csproj 
+@@ -84,6 +84,7 @@
+    <Content Include="Css\LoggedOn\Contractor\ContractorHomepage.css" />
+    <Content Include="Css\LoggedOn\Contractor\ContractorIncompleteWork.css" />
+    <Content Include="Css\LoggedOn\Contractor\ContractorNavBar.css" />
+    <Content Include="Css\LoggedOn\Contractor\ContractorPastTransactions.css" />
+    <Content Include="Css\LoggedOn\Contractor\ContractorProfile.css" />
+    <Content Include="Css\LoggedOn\Customer\BrowseAvailable.css" />
+    <Content Include="Css\LoggedOn\Customer\CustomerChangePassword.css" />
+@@ -119,6 +120,7 @@
+    <Content Include="Scripts\LoggedOn\Contractor\ContractorHomepage.js" />
+    <Content Include="Scripts\LoggedOn\Contractor\ContractorIncompleteWork.js" />
+    <Content Include="Scripts\LoggedOn\Contractor\ContractorNavBar.js" />
+    <Content Include="Scripts\LoggedOn\Contractor\ContractorPastTransactions.js" />
+    <Content Include="Scripts\LoggedOn\Contractor\ContractorProfile.js" />
+    <Content Include="Scripts\LoggedOn\Contractor\OnLoadContractor.js" />
+    <Content Include="Scripts\LoggedOn\Customer\BrowseAvailable.js" />
+@@ -187,6 +189,7 @@
+    <Compile Include="DBData\TransactionDBData.cs" />
+    <Compile Include="DBData\UserDBData.cs" />
+    <Compile Include="Helper\Connection.cs" />
+    <Compile Include="Helper\Contractor\ContractorCompletedTransaction.cs" />
+    <Compile Include="Helper\Contractor\IncompleteWork.cs" />
+    <Compile Include="Helper\Contractor\NewWork.cs" />
+    <Compile Include="Helper\Contractor\Work.cs" />

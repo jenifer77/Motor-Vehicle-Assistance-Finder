@@ -1,0 +1,526 @@
+ow-roadside-assistance/uow-roadside-assistance/Css/LoggedOn/Admin/AccountStatistics.css 
+@@ -27,4 +27,8 @@
+
+.card {
+    visibility: hidden;
+}
+
+#searchButton {
+    cursor: pointer;
+} 
+ 43  uow-roadside-assistance/uow-roadside-assistance/Scripts/LoggedOn/Admin/AccountStatistics.js 
+@@ -1,4 +1,45 @@
+﻿$(document).ready(function () {
+﻿window.onload = function () {
+    AdminService.getUserFromSession(function (session) {
+        if (session == null) {
+            window.location.href = '../../LoggedOff/Home.aspx'
+        } else {
+            var curUser = JSON.parse(session);
+            if (curUser.UserType != 'Admin') {
+                window.history.back();
+            }
+            else {
+                // do stuff
+                extractStatsFromUrl();
+            }
+        }
+    });
+}
+
+function extractStatsFromUrl() {
+    var userID = getUrlParameter('uid');
+
+    if (userID != undefined) {
+        $('#UserID').val(userID);
+        $('#searchButton').trigger('click');
+    }
+}
+
+function getUrlParameter(sParam) {
+    var sPageURL = window.location.search.substring(1),
+        sURLVariables = sPageURL.split('&'),
+        sParameterName,
+        i;
+
+    for (i = 0; i < sURLVariables.length; i++) {
+        sParameterName = sURLVariables[i].split('=');
+
+        if (sParameterName[0] === sParam) {
+            return sParameterName[1] === undefined ? true : decodeURIComponent(sParameterName[1]);
+        }
+    }
+};
+
+$(document).ready(function () {
+    $('#searchButton').click(function (e) {
+
+        var userID = $('#UserID').val();
+ 108  ...stance/uow-roadside-assistance/Scripts/LoggedOn/Admin/AccountStatistics/DoughnutRating.js 
+@@ -1,59 +1,67 @@
+﻿
+
+var doughnutCtx = document.getElementById('ratingDoughnutChart');
+var doughnutData = null;
+var doughnutChart = null;
+
+
+function plotDoughnutRating(dataValues) {
+    doughnutChart.data.datasets = [{
+        data: dataValues,
+        backgroundColor: ['mediumseagreen', 'orangered']
+    }]
+
+    doughnutChart.update();
+}
+    if (doughnutChart == null) {
+        doughnutData = {
+            datasets: [{
+                data: dataValues,
+                backgroundColor: ['mediumseagreen', 'orangered']
+            }],
+
+var doughnutCtx = document.getElementById('ratingDoughnutChart');
+var doughnutData = {
+    datasets: [{
+        data: [80,27],
+        backgroundColor: ['mediumseagreen', 'orangered']
+    }],
+
+    // These labels appear in the legend and in the tooltips when hovering different arcs
+    labels: [
+        'Good Rating',
+        'Bad Rating'
+    ]
+};
+
+
+var doughnutChart = new Chart(doughnutCtx, {
+    // The type of chart we want to create
+    type: 'doughnut',
+
+    // The data for our dataset
+    data: doughnutData,
+
+    // Configuration options go here
+    options: {
+        responsive: true,
+        legend: {
+            position: 'bottom',
+        },
+        animation: {
+            animateScale: true,
+            animateRotate: true
+        },
+        tooltips: {
+            callbacks: {
+                label: function (tooltipItem, data) {
+                    var dataset = data.datasets[tooltipItem.datasetIndex];
+                    var total = dataset.data.reduce(function (previousValue, currentValue, currentIndex, array) {
+                        return previousValue + currentValue;
+                    });
+                    var currentValue = dataset.data[tooltipItem.index];
+                    var percentage = Math.floor(((currentValue / total) * 100) + 0.5);
+                    return percentage + "%";
+                // These labels appear in the legend and in the tooltips when hovering different arcs
+                labels: [
+                    'Good Rating',
+                    'Bad Rating'
+                ]
+        };
+
+        doughnutChart = new Chart(doughnutCtx, {
+            // The type of chart we want to create
+            type: 'doughnut',
+
+            // The data for our dataset
+            data: doughnutData,
+
+            // Configuration options go here
+            options: {
+                responsive: true,
+                legend: {
+                    position: 'bottom',
+                },
+                animation: {
+                    animateScale: true,
+                    animateRotate: true
+                },
+                tooltips: {
+                    callbacks: {
+                        label: function (tooltipItem, data) {
+                            var dataset = data.datasets[tooltipItem.datasetIndex];
+                            var total = dataset.data.reduce(function (previousValue, currentValue, currentIndex, array) {
+                                return previousValue + currentValue;
+                            });
+                            var currentValue = dataset.data[tooltipItem.index];
+                            var percentage = Math.floor(((currentValue / total) * 100) + 0.5);
+                            return percentage + "%";
+                        }
+                    }
+                }
+            }
+        }
+
+        });
+
+        return;
+    }
+
+});
+    doughnutChart.data.datasets = [{
+        data: dataValues,
+        backgroundColor: ['mediumseagreen', 'orangered']
+    }]
+
+    doughnutChart.update();
+} 
+  81  ...tance/uow-roadside-assistance/Scripts/LoggedOn/Admin/AccountStatistics/ProblemBarChart.js 
+@@ -1,5 +1,48 @@
+﻿
+var problemsCtx = document.getElementById('problemsBarChart');
+var problemsChart = null;
+
+function plotProblemsBarChart(dataValues) {
+
+    if (problemsChart == null) {
+        problemsChart = new Chart(problemsCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Tyre', 'Battery', 'Engine', 'General'],
+                datasets: [{
+                    data: dataValues,
+                    backgroundColor: [
+                        'rgba(255, 99, 132, 0.2)',
+                        'rgba(54, 162, 235, 0.2)',
+                        'rgba(255, 206, 86, 0.2)',
+                        'rgba(75, 192, 192, 0.2)'
+                    ],
+                    borderColor: [
+                        'rgba(255, 99, 132, 1)',
+                        'rgba(54, 162, 235, 1)',
+                        'rgba(255, 206, 86, 1)',
+                        'rgba(75, 192, 192, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                scales: {
+                    yAxes: [{
+                        ticks: {
+                            beginAtZero: true
+                        }
+                    }]
+                },
+                legend: {
+                    display: false
+                }
+            }
+        });
+
+        return;
+    }
+
+    problemsChart.data.datasets = [{
+        data: dataValues,
+        backgroundColor: [
+@@ -18,40 +61,4 @@ function plotProblemsBarChart(dataValues) {
+    }];
+
+    problemsChart.update();
+}
+
+var problemsCtx = document.getElementById('problemsBarChart');
+var problemsChart = new Chart(problemsCtx, {
+    type: 'bar',
+    data: {
+        labels: ['Tyre', 'Battery', 'Engine', 'General'],
+        datasets: [{
+            data: [123, 456, 789, 900],
+            backgroundColor: [
+                'rgba(255, 99, 132, 0.2)',
+                'rgba(54, 162, 235, 0.2)',
+                'rgba(255, 206, 86, 0.2)',
+                'rgba(75, 192, 192, 0.2)'
+            ],
+            borderColor: [
+                'rgba(255, 99, 132, 1)',
+                'rgba(54, 162, 235, 1)',
+                'rgba(255, 206, 86, 1)',
+                'rgba(75, 192, 192, 1)'
+            ],
+            borderWidth: 1
+        }]
+    },
+    options: {
+        scales: {
+            yAxes: [{
+                ticks: {
+                    beginAtZero: true
+                }
+            }]
+        },
+        legend: {
+            display: false
+        }
+    }
+}); 
+} 
+ 55  .../uow-roadside-assistance/Scripts/LoggedOn/Admin/AccountStatistics/TransactionLineChart.js 
+@@ -1,30 +1,39 @@
+﻿function plotTransactionsLineChart(dataValues) {
+﻿
+var transactionsLineCtx = document.getElementById('transactionLineChart').getContext('2d');
+var transactionsLineChart = null;
+
+
+function plotTransactionsLineChart(dataValues) {
+
+    if (transactionsLineChart == null) {
+        transactionsLineChart = new Chart(transactionsLineCtx, {
+            // The type of chart we want to create
+            type: 'line',
+
+            // The data for our dataset
+            data: {
+                labels: ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN'],
+                datasets: [{
+                    borderColor: 'rgb(255, 99, 132)',
+                    data: dataValues
+                }]
+            },
+
+            // Configuration options go here
+            options: {
+                legend: {
+                    display: false
+                }
+            }
+        });
+
+        return;
+    }
+
+    transactionsLineChart.data.datasets = [{
+        borderColor: 'rgb(255, 99, 132)',
+        data: dataValues
+    }];
+
+    transactionsLineChart.update();
+}
+
+var transactionsLineCtx = document.getElementById('transactionLineChart').getContext('2d');
+var transactionsLineChart = new Chart(transactionsLineCtx, {
+    // The type of chart we want to create
+    type: 'line',
+
+    // The data for our dataset
+    data: {
+        labels: ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN'],
+        datasets: [{
+            borderColor: 'rgb(255, 99, 132)',
+            data: [5, 10, 5, 2, 20, 30]
+        }]
+    },
+
+    // Configuration options go here
+    options: {
+        legend: {
+            display: false
+        }
+    }
+}); 
+  4  uow-roadside-assistance/uow-roadside-assistance/Scripts/LoggedOn/Admin/AllTransactions.js 
+@@ -30,8 +30,8 @@ function addRow(transactionID, contractorID, customerID, cost, transactionDateTi
+
+    var rowContent =
+        "<td>" + transactionID + "</td>" +
+        "<td>" + contractorID + "</td>" +
+        "<td>" + customerID + "</td>" +
+        "<td><a href='AccountStatistics.aspx?uid=" + contractorID + "'>" + contractorID + "</a></td>" +
+        "<td><a href='AccountStatistics.aspx?uid=" + customerID + "'>" + customerID + "</a></td>" +
+        "<td>$" + cost + "</td>" +
+        "<td>" + transactionDateTime + "</td>"
+
+
+﻿var costCtx = document.getElementById('costHorizonalBarChart');
+var costHorBarChart = null;
+
+function plotCostHorizontalBarChart(dataValues) {
+
+    for (var i = 0; i < dataValues.length; i++) {
+        dataValues[i] = dataValues[i].toFixed(0);
+    }
+
+    if (costHorBarChart == null) {
+        costHorBarChart = new Chart(costCtx, {
+            type: 'horizontalBar',
+            data: {
+                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                datasets: [{
+                    label: 'AUD',
+                    data: dataValues,
+                    backgroundColor: [
+                        'rgba(255, 99, 132, 0.2)',
+                        'rgba(54, 162, 235, 0.2)',
+                        'rgba(255, 206, 86, 0.2)',
+                        'rgba(75, 192, 192, 0.2)',
+                        'rgba(153, 102, 255, 0.2)',
+                        'rgba(255, 159, 64, 0.2)'
+                    ],
+                    borderColor: [
+                        'rgba(255, 99, 132, 1)',
+                        'rgba(54, 162, 235, 1)',
+                        'rgba(255, 206, 86, 1)',
+                        'rgba(75, 192, 192, 1)',
+                        'rgba(153, 102, 255, 1)',
+                        'rgba(255, 159, 64, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                scales: {
+                    yAxes: [{
+                        ticks: {
+                            beginAtZero: true
+                        }
+                    }]
+                },
+                legend: {
+                    display: false
+                }
+            }
+        });
+        return;
+    }
+
+    costHorBarChart.data.datasets = [{
+        label: 'AUD',
+        data: dataValues,
+        backgroundColor: [
+            'rgba(255, 99, 132, 0.2)',
+            'rgba(54, 162, 235, 0.2)',
+            'rgba(255, 206, 86, 0.2)',
+            'rgba(75, 192, 192, 0.2)',
+            'rgba(153, 102, 255, 0.2)',
+            'rgba(255, 159, 64, 0.2)'
+        ],
+        borderColor: [
+            'rgba(255, 99, 132, 1)',
+            'rgba(54, 162, 235, 1)',
+            'rgba(255, 206, 86, 1)',
+            'rgba(75, 192, 192, 1)',
+            'rgba(153, 102, 255, 1)',
+            'rgba(255, 159, 64, 1)'
+        ],
+        borderWidth: 1
+    }]
+
+    costHorBarChart.update();
+}
+
+
+
+
+var pieCtx = document.getElementById('ratingPieChart');
+var pieData = null;
+var pieChart = null;
+
+function plotRatingPieChart(totalTransactions, ratedTransactions, goodRatings) {
+
+    var pieDataValues = [goodRatings, ratedTransactions - goodRatings, totalTransactions - ratedTransactions]//[totalTransactions, numberOfGoodRating];
+
+    if (pieChart == null) {
+        pieData = {
+            datasets: [{
+                data: pieDataValues,
+                backgroundColor: ['mediumseagreen', 'orangered', 'gray']
+            }],
+
+            // These labels appear in the legend and in the tooltips when hovering different arcs
+            labels: [
+                'Good Rating',
+                'Bad Rating',
+                'Unrated'
+            ]
+        };
+
+        pieChart = new Chart(pieCtx, {
+            // The type of chart we want to create
+            type: 'pie',
+
+            // The data for our dataset
+            data: pieData,
+
+            // Configuration options go here
+            options: {
+                responsive: true,
+                legend: {
+                    position: 'bottom',
+                },
+                animation: {
+                    animateScale: true,
+                    animateRotate: true
+                }
+            }
+
+        });
+
+        return;
+    }
+
+    pieChart.data.datasets = [{
+        data: pieDataValues,
+
+        backgroundColor: ['mediumseagreen', 'orangered', 'gray']
+    }]
+
+    pieChart.update();
+}
+
+
+
+﻿function plotTransactionsBarChart(dataValues) {
+
+    var transactionBarCtx = document.getElementById('transactionBarChart');
+    var transactionBarChart = new Chart(transactionBarCtx, {
+        type: 'bar',
+        data: {
+            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+            datasets: [{
+                data: dataValues,
+                backgroundColor: [
+                    'rgba(255, 99, 132, 0.2)',
+                    'rgba(54, 162, 235, 0.2)',
+                    'rgba(255, 206, 86, 0.2)',
+                    'rgba(75, 192, 192, 0.2)',
+                    'rgba(153, 102, 255, 0.2)',
+                    'rgba(255, 159, 64, 0.2)'
+                ],
+                borderColor: [
+                    'rgba(255, 99, 132, 1)',
+                    'rgba(54, 162, 235, 1)',
+                    'rgba(255, 206, 86, 1)',
+                    'rgba(75, 192, 192, 1)',
+                    'rgba(153, 102, 255, 1)',
+                    'rgba(255, 159, 64, 1)'
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            scales: {
+                yAxes: [{
+                    ticks: {
+                        beginAtZero: true
+                    }
+                }]
+            },
+            legend: {
+                display: false
+            }
+        }
+    });
+}

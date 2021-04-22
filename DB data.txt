@@ -1,0 +1,1179 @@
+        return res;
+        }
+
+        // find hardcode address for contractor
+        public static int getNumberOfContractorAddresses()
+        {
+
+            SqlConnection conn = Helper.Connection.connectionString;
+            conn.Open();
+
+            String countAddressQuery = "SELECT COUNT(*) AS total FROM dbo.ADDRESS";
+            SqlCommand cmd = new SqlCommand(countAddressQuery, conn);
+            SqlDataReader reader = cmd.ExecuteReader();
+
+            int res = 0;
+            if (reader.Read())
+            {
+                res = Convert.ToInt32(reader["total"]);
+            }
+
+            conn.Close();
+
+            return res;
+        }
+
+        public static int getOneUnassignedAddress()
+        {
+            SqlConnection conn = Helper.Connection.connectionString;
+            conn.Open();
+
+            String getOneUnassignedAddressQuery = "SELECT TOP 1 userID from ADDRESS WHERE userID NOT IN ( select userID from CONTRACTORS)";
+            SqlCommand cmd = new SqlCommand(getOneUnassignedAddressQuery, conn);
+            SqlDataReader reader = cmd.ExecuteReader();
+
+            int unassignedAddressOldUserID = 0;
+            if (reader.Read())
+            {
+                unassignedAddressOldUserID = Convert.ToInt32(reader["userID"]);
+            }
+
+            conn.Close();
+
+            return unassignedAddressOldUserID;
+
+
+        }
+
+
+        public static Boolean findContractorAddress(int newContractorID)
+        {
+            int maxContractorLimit = getNumberOfContractorAddresses();
+
+            int numOfContractors = ContractorDBData.getNumberOfContractors();
+            int numOfContractorsBeforeInsertion = numOfContractors - 1;
+
+            if (numOfContractorsBeforeInsertion + 1 > maxContractorLimit)
+            {
+                return false;
+            }
+
+            Address newContractorIDExistedInAddress = AddressDBData.getAddressByUserID(newContractorID);
+
+            if (newContractorIDExistedInAddress == null)
+            {
+                int oldUserID = getOneUnassignedAddress();
+
+                updateUserIDForNewContractor(newContractorID, oldUserID);
+            }
+
+            return true;
+        }
+
+        //
+        public static void updateUserIDForNewContractor(int newContractorID, int oldUserID)
+        {
+            SqlConnection conn = Helper.Connection.connectionString;
+            conn.Open();
+
+            String updateQuery = "UPDATE dbo.ADDRESS SET userID = @newContractorID WHERE userID = @oldUserID";
+            SqlCommand cmd = new SqlCommand(updateQuery, conn);
+            cmd.Parameters.AddWithValue("@newContractorID", newContractorID);
+            cmd.Parameters.AddWithValue("@oldUserID", oldUserID);
+            cmd.ExecuteNonQuery();
+
+            conn.Close();
+
+        }
+    }
+} 
+
+
+
+
+
+;
+using System.Collections.Generic;
+using System.Configuration;
+using System.Data.SqlClient;
+using System.Linq;
+using System.Web;
+using uow_roadside_assistance.Classes;
+
+namespace uow_roadside_assistance.DBData
+{
+    public class ContractorDBData
+    {
+        public static Contractor getContractorByID(int userID)
+        {
+            User getUser = UserDBData.getUserByID(userID);
+
+            if (getUser == null)
+            {
+                return null;
+            }
+
+            String username = getUser.UserName;
+            String email = getUser.Email;
+            String password = getUser.Password;
+            String userType = getUser.UserType;
+            String fullName = getUser.FullName;
+
+            SqlConnection conn = Helper.Connection.connectionString;
+            conn.Open();
+
+            String getUserNameQuery = "SELECT * FROM dbo.CONTRACTORS WHERE userID = @userID";
+            SqlCommand cmd = new SqlCommand(getUserNameQuery, conn);
+            cmd.Parameters.AddWithValue("@userID", userID);
+            SqlDataReader reader = cmd.ExecuteReader();
+
+            Contractor res = null;
+            if (reader.Read())
+            {
+                String accountName = Convert.ToString(reader["accountName"]).TrimEnd();
+                String accountNumber = Convert.ToString(reader["accountNumber"]).TrimEnd();
+                int BSB = Convert.ToInt32(reader["BSB"]);
+
+                res = new Contractor(userID, username, email, password, userType, fullName, accountName, accountNumber, BSB);
+            }
+
+            conn.Close();
+
+            return res;
+        }
+
+        // 
+        public static int getNumberOfContractors()
+        {
+
+            SqlConnection conn = Helper.Connection.connectionString;
+            conn.Open();
+
+            String countContractorsQuery = "SELECT COUNT(*) AS total FROM dbo.CONTRACTORS";
+            SqlCommand cmd = new SqlCommand(countContractorsQuery, conn);
+            SqlDataReader reader = cmd.ExecuteReader();
+
+            int res = 0;
+            if (reader.Read())
+            {
+                res = Convert.ToInt32(reader["total"]);
+            }
+
+            conn.Close();
+
+            return res;
+        }
+
+        // Insert 
+        public static void insertNewContractor(int userID, String accountName, String accountNumber, int BSB)
+        {
+            SqlConnection conn = Helper.Connection.connectionString;
+            conn.Open();
+            String insertQuery = "INSERT INTO dbo.CONTRACTORS(userID, accountName, accountNumber, BSB) " +
+                                    "VALUES (@userID, @accountName, @accountNumber, @BSB)";
+            SqlCommand cmd = new SqlCommand(insertQuery, conn);
+            cmd.Parameters.AddWithValue("@userID", userID);
+            cmd.Parameters.AddWithValue("@accountName", accountName);
+            cmd.Parameters.AddWithValue("@accountNumber", accountNumber);
+            cmd.Parameters.AddWithValue("@BSB", BSB);
+            cmd.ExecuteNonQuery();
+
+            conn.Close();
+        }
+
+        public static void updateContractor(int userID, String accountName, String accountNumber, int BSB)
+        {
+            SqlConnection conn = Helper.Connection.connectionString;
+            conn.Open();
+            String updateQuery = "UPDATE dbo.CONTRACTORS " +
+                                    "SET accountName = @accountName, accountNumber = @accountNumber, BSB = @BSB " +
+                                    "WHERE userID = @userID";
+
+            SqlCommand cmd = new SqlCommand(updateQuery, conn);
+            cmd.Parameters.AddWithValue("@userID", userID);
+            cmd.Parameters.AddWithValue("@accountName", accountName);
+            cmd.Parameters.AddWithValue("@accountNumber", accountNumber);
+            cmd.Parameters.AddWithValue("@BSB", BSB);
+            cmd.ExecuteNonQuery();
+
+            conn.Close();
+        }
+
+        // DELETE
+        public static void deleteContractorByUserID(int userID)
+        {
+            SqlConnection conn = Helper.Connection.connectionString;
+            conn.Open();
+
+            String updateUserQuery = "DELETE FROM dbo.CONTRACTORS WHERE userID = @userID";
+            SqlCommand cmd = new SqlCommand(updateUserQuery, conn);
+            cmd.Parameters.AddWithValue("@userID", userID);
+            cmd.ExecuteNonQuery();
+            conn.Close();
+        }
+
+    }
+}
+
+
+
+
+
+
+using System;
+using System.Collections.Generic;
+using System.Configuration;
+using System.Data.SqlClient;
+using System.Linq;
+using System.Web;
+using uow_roadside_assistance.Classes;
+
+namespace uow_roadside_assistance.DBData
+{
+    public class RequestDBData
+    {
+        public static Request getRequestByCustomerID(int customerID)
+        {
+            SqlConnection conn = Helper.Connection.connectionString;
+            conn.Open();
+
+            String getRequestQuery = "SELECT * FROM dbo.REQUESTS WHERE customerID = @customerID";
+            SqlCommand cmd = new SqlCommand(getRequestQuery, conn);
+            cmd.Parameters.AddWithValue("@customerID", customerID);
+            SqlDataReader reader = cmd.ExecuteReader();
+
+            Request res = null;
+            if (reader.Read())
+            {
+                int requestID = Convert.ToInt32(reader["requestID"]);
+
+                Boolean tyreProblem = Convert.ToBoolean(reader["tyreProblem"]);
+                Boolean carBatteryProblem = Convert.ToBoolean(reader["carBatteryProblem"]);
+                Boolean engineProblem = Convert.ToBoolean(reader["engineProblem"]);
+                Boolean generalProblem = Convert.ToBoolean(reader["generalProblem"]);
+
+
+                String problemDescription = Convert.ToString(reader["problemDescription"]).TrimEnd();
+                String customerLatitude = Convert.ToString(reader["customerLatitude"]).TrimEnd();
+                String customerLongitude = Convert.ToString(reader["customerLongitude"]).TrimEnd();
+                String requestStatus = Convert.ToString(reader["requestStatus"]).TrimEnd();
+
+                DateTime requestDate = Convert.ToDateTime(reader["requestDate"]);
+
+                res = new Request(requestID, customerID, tyreProblem, carBatteryProblem, engineProblem, generalProblem, problemDescription, customerLatitude, customerLongitude, requestStatus, requestDate);
+            }
+
+            conn.Close();
+
+            return res;
+        }
+
+
+        public static Request getRequestByRequestID(int requestID)
+        {
+            SqlConnection conn = Helper.Connection.connectionString;
+            conn.Open();
+
+            String getRequestQuery = "SELECT * FROM dbo.REQUESTS WHERE requestID = @requestID";
+            SqlCommand cmd = new SqlCommand(getRequestQuery, conn);
+            cmd.Parameters.AddWithValue("@requestID", requestID);
+            SqlDataReader reader = cmd.ExecuteReader();
+
+            Request res = null;
+            if (reader.Read())
+            {
+                int customerID = Convert.ToInt32(reader["customerID"]);
+
+                Boolean tyreProblem = Convert.ToBoolean(reader["tyreProblem"]);
+                Boolean carBatteryProblem = Convert.ToBoolean(reader["carBatteryProblem"]);
+                Boolean engineProblem = Convert.ToBoolean(reader["engineProblem"]);
+                Boolean generalProblem = Convert.ToBoolean(reader["generalProblem"]);
+
+
+                String problemDescription = Convert.ToString(reader["problemDescription"]).TrimEnd();
+                String customerLatitude = Convert.ToString(reader["customerLatitude"]).TrimEnd();
+                String customerLongitude = Convert.ToString(reader["customerLongitude"]).TrimEnd();
+                String requestStatus = Convert.ToString(reader["requestStatus"]).TrimEnd();
+
+                DateTime requestDate = Convert.ToDateTime(reader["requestDate"]);
+
+                res = new Request(requestID, customerID, tyreProblem, carBatteryProblem, engineProblem, generalProblem, problemDescription, customerLatitude, customerLongitude, requestStatus, requestDate);
+            }
+
+            conn.Close();
+
+            return res;
+        }
+
+        //
+        public static Boolean IsExist(int customerID)
+        {
+            SqlConnection conn = Helper.Connection.connectionString;
+            conn.Open();
+
+            String getRequestQuery = "SELECT * FROM dbo.REQUESTS WHERE customerID = @customerID";
+            SqlCommand cmd = new SqlCommand(getRequestQuery, conn);
+            cmd.Parameters.AddWithValue("@customerID", customerID);
+            SqlDataReader reader = cmd.ExecuteReader();
+
+            Boolean check = reader.HasRows;
+
+            conn.Close();
+
+            return check;
+        }
+
+        //
+        public static void insertNewRequest(int customerID, Boolean tyreProblem, Boolean carBatteryProblem, Boolean engineProblem, Boolean generalProblem, String problemDescription, String customerLatitude, String customerLongitude)
+        {
+            String requestStatus = "Waiting";
+            DateTime currentDate = DateTime.Now;
+            String requestDate = currentDate.ToString("yyyy-MM-dd HH:mm:ss.fff");
+
+            // Insert query for REQUESTS
+            SqlConnection conn = Helper.Connection.connectionString;
+            conn.Open();
+            String insertRequestQuery = "INSERT INTO dbo.REQUESTS(customerID, tyreProblem, carBatteryProblem, engineProblem, generalProblem, problemDescription, customerLatitude, customerLongitude, requestStatus, requestDate)" +
+                                    "VALUES (@customerID, @tyreProblem, @carBatteryProblem, @engineProblem, @generalProblem, @problemDescription, @customerLatitude, @customerLongitude, @requestStatus, @requestDate)";
+            SqlCommand cmd = new SqlCommand(insertRequestQuery, conn);
+
+            cmd.Parameters.AddWithValue("@customerID", customerID);
+            cmd.Parameters.AddWithValue("@tyreProblem", tyreProblem);
+            cmd.Parameters.AddWithValue("@carBatteryProblem", carBatteryProblem);
+            cmd.Parameters.AddWithValue("@engineProblem", engineProblem);
+            cmd.Parameters.AddWithValue("@generalProblem", generalProblem);
+
+            cmd.Parameters.AddWithValue("@problemDescription", problemDescription);
+            cmd.Parameters.AddWithValue("@customerLatitude", customerLatitude);
+            cmd.Parameters.AddWithValue("@customerLongitude", customerLongitude);
+            cmd.Parameters.AddWithValue("@requestStatus", requestStatus);
+            cmd.Parameters.AddWithValue("@requestDate", requestDate);
+            cmd.ExecuteNonQuery();
+
+            conn.Close();
+        }
+
+        //
+
+        public static void deleteRequest(int requestID)
+        {
+            SqlConnection conn = Helper.Connection.connectionString;
+            conn.Open();
+
+            String deletetRequestQuery = "DELETE FROM dbo.REQUESTS WHERE requestID = @requestID";
+            SqlCommand cmd = new SqlCommand(deletetRequestQuery, conn);
+            cmd.Parameters.AddWithValue("@requestID", requestID);
+            cmd.ExecuteNonQuery();
+
+            conn.Close();
+        }
+    }
+}
+
+
+
+
+
+
+
+
+
+  
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Configuration;
+using System.Data.SqlClient;
+using System.Linq;
+using System.Web;
+using uow_roadside_assistance.Classes;
+
+namespace uow_roadside_assistance.DBData
+{
+    public class ResponseDBData
+    {
+        public static Response getResponse(int requestID, int contractorID)
+        {
+            SqlConnection conn = Helper.Connection.connectionString;
+            conn.Open();
+
+            String getResponseQuery = "SELECT * FROM dbo.RESPONSES WHERE requestID = @requestID AND contractorID = @contractorID";
+            SqlCommand cmd = new SqlCommand(getResponseQuery, conn);
+            cmd.Parameters.AddWithValue("@requestID", requestID);
+            cmd.Parameters.AddWithValue("@contractorID", contractorID);
+            SqlDataReader reader = cmd.ExecuteReader();
+
+            Response res = null;
+            if (reader.Read())
+            {
+                int responseID = Convert.ToInt32(reader["responseID"]);
+                String responseStatus = Convert.ToString(reader["responseStatus"]).TrimEnd();
+
+                res = new Response(responseID, requestID, contractorID, responseStatus);
+            }
+
+            conn.Close();
+
+            return res;
+
+        }
+
+        public static ArrayList getResponseList(int requestID)
+        {
+            SqlConnection conn = Helper.Connection.connectionString;
+            conn.Open();
+
+            String getResponseQuery = "SELECT * FROM dbo.RESPONSES WHERE requestID = @requestID";
+            SqlCommand cmd = new SqlCommand(getResponseQuery, conn);
+            cmd.Parameters.AddWithValue("@requestID", requestID);
+            SqlDataReader reader = cmd.ExecuteReader();
+
+            ArrayList res = new ArrayList();
+            while (reader.Read())
+            {
+                int responseID = Convert.ToInt32(reader["responseID"]);
+                int contractorID = Convert.ToInt32(reader["contractorID"]);
+                String responseStatus = Convert.ToString(reader["responseStatus"]).TrimEnd();
+
+                res.Add(new Response(responseID, requestID, contractorID, responseStatus));
+            }
+
+            conn.Close();
+
+            return res;
+
+        }
+
+        public static ArrayList getResponseListByContractorID(int contractorID)
+        {
+            SqlConnection conn = Helper.Connection.connectionString;
+            conn.Open();
+
+            String getResponseQuery = "SELECT * FROM dbo.RESPONSES WHERE contractorID = @contractorID";
+            SqlCommand cmd = new SqlCommand(getResponseQuery, conn);
+            cmd.Parameters.AddWithValue("@contractorID", contractorID);
+            SqlDataReader reader = cmd.ExecuteReader();
+
+            ArrayList res = new ArrayList();
+            while (reader.Read())
+            {
+                int responseID = Convert.ToInt32(reader["responseID"]);
+                int requestID = Convert.ToInt32(reader["requestID"]);
+                String responseStatus = Convert.ToString(reader["responseStatus"]).TrimEnd();
+
+                res.Add(new Response(responseID, requestID, contractorID, responseStatus));
+            }
+
+            conn.Close();
+
+            return res;
+
+        }
+
+        public static void  insertNewResponse(int requestID, int contractorID, String responseStatus)
+        {
+            SqlConnection conn = Helper.Connection.connectionString;
+            conn.Open();
+
+            String insertResponseQuery = "INSERT INTO dbo.RESPONSES(requestID, contractorID, responseStatus)" +
+                                        "VALUES (@requestID, @contractorID, @responseStatus)";
+            SqlCommand cmd = new SqlCommand(insertResponseQuery, conn);
+            cmd.Parameters.AddWithValue("@requestID", requestID);
+            cmd.Parameters.AddWithValue("@contractorID", contractorID);
+            cmd.Parameters.AddWithValue("@responseStatus", "Waiting");
+            cmd.ExecuteNonQuery();
+
+            conn.Close();
+        }
+
+        public static void deleteResponse(int requestID)
+        {
+            SqlConnection conn = Helper.Connection.connectionString;
+            conn.Open();
+
+            String deletetRequestQuery = "DELETE FROM dbo.RESPONSES WHERE requestID = @requestID";
+            SqlCommand cmd = new SqlCommand(deletetRequestQuery, conn);
+            cmd.Parameters.AddWithValue("@requestID", requestID);
+            cmd.ExecuteNonQuery();
+
+            conn.Close();
+        }
+
+        public static void deleteResponseByContractorID(int contractorID)
+        {
+            SqlConnection conn = Helper.Connection.connectionString;
+            conn.Open();
+
+            String deletetRequestQuery = "DELETE FROM dbo.RESPONSES WHERE contractorID = @contractorID  ";
+            SqlCommand cmd = new SqlCommand(deletetRequestQuery, conn);
+            cmd.Parameters.AddWithValue("@contractorID", contractorID);
+            cmd.ExecuteNonQuery();
+
+            conn.Close();
+        }
+
+        public static void declineResponse(int requestID, int contractorID)
+        {
+            SqlConnection conn = Helper.Connection.connectionString;
+            conn.Open();
+
+            String getResponseQuery = "UPDATE dbo.RESPONSES SET responseStatus = @responseStatus WHERE requestID = @requestID AND contractorID = @contractorID";
+            SqlCommand cmd = new SqlCommand(getResponseQuery, conn);
+            cmd.Parameters.AddWithValue("@responseStatus", "Busy");
+            cmd.Parameters.AddWithValue("@requestID", requestID);
+            cmd.Parameters.AddWithValue("@contractorID", contractorID);
+            cmd.ExecuteNonQuery();
+
+            conn.Close();
+
+        }
+
+        public static void acceptResponse(int requestID, int contractorID)
+        {
+            SqlConnection conn = Helper.Connection.connectionString;
+            conn.Open();
+
+            String getResponseQuery = "UPDATE dbo.RESPONSES SET responseStatus = @responseStatus WHERE requestID = @requestID AND contractorID = @contractorID";
+            SqlCommand cmd = new SqlCommand(getResponseQuery, conn);
+            cmd.Parameters.AddWithValue("@responseStatus", "Accepted");
+            cmd.Parameters.AddWithValue("@requestID", requestID);
+            cmd.Parameters.AddWithValue("@contractorID", contractorID);
+            cmd.ExecuteNonQuery();
+
+            conn.Close();
+
+        }
+    }
+}
+
+
+
+
+
+using System.Collections;
+using System.Collections.Generic;
+using System.Configuration;
+using System.Data.SqlClient;
+using System.Linq;
+using System.Web;
+using uow_roadside_assistance.Classes;
+
+namespace uow_roadside_assistance.DBData
+{
+    public class TransactionDBData
+    {
+        // 
+        public static ArrayList GetCompletedTransactionsByContractorID(int contractorID)
+        {
+            Boolean customerFinished = true;
+            Boolean contractorFinished = true;
+
+            SqlConnection conn = Helper.Connection.connectionString;
+            conn.Open();
+
+            String getTransactionQuery = "SELECT * FROM dbo.TRANSACTIONS WHERE customerFinished = @customerFinished and contractorFinished = @contractorFinished and contractorID = @contractorID ORDER BY transactionDate DESC";
+            SqlCommand cmd = new SqlCommand(getTransactionQuery, conn);
+            cmd.Parameters.AddWithValue("@customerFinished", customerFinished);
+            cmd.Parameters.AddWithValue("@contractorFinished", contractorFinished);
+            cmd.Parameters.AddWithValue("@contractorID", contractorID);
+            SqlDataReader reader = cmd.ExecuteReader();
+
+            ArrayList res = new ArrayList();
+            while (reader.Read())
+            {
+                int transactionID = Convert.ToInt32(reader["transactionID"]);
+                // contractorID 
+                int customerID = Convert.ToInt32(reader["customerID"]);
+                double cost = Convert.ToDouble(reader["cost"]);
+                // contractorFinished
+                // customerFinished
+
+                Boolean tyreProblem = Convert.ToBoolean(reader["tyreProblem"]);
+                Boolean carBatteryProblem = Convert.ToBoolean(reader["carBatteryProblem"]);
+                Boolean engineProblem = Convert.ToBoolean(reader["engineProblem"]);
+                Boolean generalProblem = Convert.ToBoolean(reader["generalProblem"]);
+
+
+                String problemDescription = Convert.ToString(reader["problemDescription"]).TrimEnd();
+                String customerLatitude = Convert.ToString(reader["customerLatitude"]).TrimEnd();
+                String customerLongitude = Convert.ToString(reader["customerLongitude"]).TrimEnd();
+                DateTime transactionDate = Convert.ToDateTime(reader["transactionDate"]);
+
+                Transaction transaction = new Transaction(transactionID, contractorID, customerID, cost, contractorFinished, customerFinished, tyreProblem, carBatteryProblem, engineProblem, generalProblem, problemDescription, customerLatitude, customerLongitude, transactionDate);
+
+                res.Add(transaction);
+            }
+
+            conn.Close();
+
+            return res;
+        }
+
+        // 
+        public static ArrayList GetCompletedTransactionsByCustomerID(int customerID)
+        {
+            Boolean customerFinished = true;
+            Boolean contractorFinished = true;
+
+            SqlConnection conn = Helper.Connection.connectionString;
+            conn.Open();
+
+            String getTransactionQuery = "SELECT * FROM dbo.TRANSACTIONS WHERE customerFinished = @customerFinished and contractorFinished = @contractorFinished and customerID = @customerID ORDER BY transactionDate DESC";
+            SqlCommand cmd = new SqlCommand(getTransactionQuery, conn);
+            cmd.Parameters.AddWithValue("@customerFinished", customerFinished);
+            cmd.Parameters.AddWithValue("@contractorFinished", contractorFinished);
+            cmd.Parameters.AddWithValue("@customerID", customerID);
+            SqlDataReader reader = cmd.ExecuteReader();
+
+            ArrayList res = new ArrayList();
+            while (reader.Read())
+            {
+                int transactionID = Convert.ToInt32(reader["transactionID"]);
+                int contractorID = Convert.ToInt32(reader["contractorID"]);
+                // customerID
+                double cost = Convert.ToDouble(reader["cost"]);
+                // contractorFinished
+                // customerFinished
+
+                Boolean tyreProblem = Convert.ToBoolean(reader["tyreProblem"]);
+                Boolean carBatteryProblem = Convert.ToBoolean(reader["carBatteryProblem"]);
+                Boolean engineProblem = Convert.ToBoolean(reader["engineProblem"]);
+                Boolean generalProblem = Convert.ToBoolean(reader["generalProblem"]);
+
+
+                String problemDescription = Convert.ToString(reader["problemDescription"]).TrimEnd();
+                String customerLatitude = Convert.ToString(reader["customerLatitude"]).TrimEnd();
+                String customerLongitude = Convert.ToString(reader["customerLongitude"]).TrimEnd();
+                DateTime transactionDate = Convert.ToDateTime(reader["transactionDate"]);
+
+                Transaction transaction = new Transaction(transactionID, contractorID, customerID, cost, contractorFinished, customerFinished, tyreProblem, carBatteryProblem, engineProblem, generalProblem, problemDescription, customerLatitude, customerLongitude, transactionDate);
+
+                res.Add(transaction);
+            }
+
+            conn.Close();
+
+            return res;
+        }
+
+        // 
+        public static ArrayList GetCompletedTransactions()
+        {
+            Boolean customerFinished = true;
+            Boolean contractorFinished = true;
+
+            SqlConnection conn = Helper.Connection.connectionString;
+            conn.Open();
+
+            String getTransactionQuery = "SELECT * FROM dbo.TRANSACTIONS WHERE customerFinished = @customerFinished and contractorFinished = @contractorFinished";
+            SqlCommand cmd = new SqlCommand(getTransactionQuery, conn);
+            cmd.Parameters.AddWithValue("@customerFinished", customerFinished);
+            cmd.Parameters.AddWithValue("@contractorFinished", contractorFinished);
+            SqlDataReader reader = cmd.ExecuteReader();
+
+            ArrayList res = new ArrayList();
+            while (reader.Read())
+            {
+                int transactionID = Convert.ToInt32(reader["transactionID"]);
+                int contractorID = Convert.ToInt32(reader["contractorID"]);
+                int customerID = Convert.ToInt32(reader["customerID"]);
+                double cost = Convert.ToDouble(reader["cost"]);
+                // contractorFinished
+                // customerFinished
+
+                Boolean tyreProblem = Convert.ToBoolean(reader["tyreProblem"]);
+                Boolean carBatteryProblem = Convert.ToBoolean(reader["carBatteryProblem"]);
+                Boolean engineProblem = Convert.ToBoolean(reader["engineProblem"]);
+                Boolean generalProblem = Convert.ToBoolean(reader["generalProblem"]);
+
+
+                String problemDescription = Convert.ToString(reader["problemDescription"]).TrimEnd();
+                String customerLatitude = Convert.ToString(reader["customerLatitude"]).TrimEnd();
+                String customerLongitude = Convert.ToString(reader["customerLongitude"]).TrimEnd();
+                DateTime transactionDate = Convert.ToDateTime(reader["transactionDate"]);
+
+                Transaction transaction = new Transaction(transactionID, contractorID, customerID, cost, contractorFinished, customerFinished, tyreProblem, carBatteryProblem, engineProblem, generalProblem, problemDescription, customerLatitude, customerLongitude, transactionDate);
+
+                res.Add(transaction);
+            }
+
+            conn.Close();
+
+            return res;
+        }
+
+        //
+        public static Transaction GetUnfinishedCustomerTransaction(int customerID)
+        {
+            Boolean customerFinished = false;
+
+            SqlConnection conn = Helper.Connection.connectionString;
+            conn.Open();
+
+            String getTransactionQuery = "SELECT * FROM dbo.TRANSACTIONS WHERE customerID = @customerID and customerFinished = @customerFinished";
+            SqlCommand cmd = new SqlCommand(getTransactionQuery, conn);
+            cmd.Parameters.AddWithValue("@customerID", customerID);
+            cmd.Parameters.AddWithValue("@customerFinished", customerFinished);
+            SqlDataReader reader = cmd.ExecuteReader();
+
+            Transaction res = null;
+            if (reader.Read())
+            {
+                int transactionID = Convert.ToInt32(reader["transactionID"]);
+                int contractorID = Convert.ToInt32(reader["contractorID"]);
+                // customerID
+                double cost = Convert.ToDouble(reader["cost"]);
+                Boolean contractorFinished = Convert.ToBoolean(reader["contractorFinished"]);
+                // customerFinished
+
+                Boolean tyreProblem = Convert.ToBoolean(reader["tyreProblem"]);
+                Boolean carBatteryProblem = Convert.ToBoolean(reader["carBatteryProblem"]);
+                Boolean engineProblem = Convert.ToBoolean(reader["engineProblem"]);
+                Boolean generalProblem = Convert.ToBoolean(reader["generalProblem"]);
+
+
+                String problemDescription = Convert.ToString(reader["problemDescription"]).TrimEnd();
+                String customerLatitude = Convert.ToString(reader["customerLatitude"]).TrimEnd();
+                String customerLongitude = Convert.ToString(reader["customerLongitude"]).TrimEnd();
+                DateTime transactionDate = Convert.ToDateTime(reader["transactionDate"]);
+
+                res = new Transaction(transactionID, contractorID, customerID, cost, contractorFinished, customerFinished, tyreProblem, carBatteryProblem, engineProblem, generalProblem, problemDescription, customerLatitude, customerLongitude, transactionDate);
+            }
+
+            conn.Close();
+
+            return res;
+        }
+
+        //
+        public static ArrayList GetUnfinishedContractorTransactions(int contractorID)
+        {
+            Boolean contractorFinished = false;
+
+            SqlConnection conn = Helper.Connection.connectionString;
+            conn.Open();
+
+            String getTransactionQuery = "SELECT * FROM dbo.TRANSACTIONS WHERE contractorID = @contractorID and contractorFinished = @contractorFinished";
+            SqlCommand cmd = new SqlCommand(getTransactionQuery, conn);
+            cmd.Parameters.AddWithValue("@contractorID", contractorID);
+            cmd.Parameters.AddWithValue("@contractorFinished", contractorFinished);
+            SqlDataReader reader = cmd.ExecuteReader();
+
+            ArrayList res = new ArrayList();
+            while (reader.Read())
+            {
+                int transactionID = Convert.ToInt32(reader["transactionID"]);
+                // contractorID
+                int customerID = Convert.ToInt32(reader["customerID"]);
+                double cost = Convert.ToDouble(reader["cost"]);
+                // contractorFinished
+                Boolean customerFinished = Convert.ToBoolean(reader["customerFinished"]);
+
+                Boolean tyreProblem = Convert.ToBoolean(reader["tyreProblem"]);
+                Boolean carBatteryProblem = Convert.ToBoolean(reader["carBatteryProblem"]);
+                Boolean engineProblem = Convert.ToBoolean(reader["engineProblem"]);
+                Boolean generalProblem = Convert.ToBoolean(reader["generalProblem"]);
+
+
+                String problemDescription = Convert.ToString(reader["problemDescription"]).TrimEnd();
+                String customerLatitude = Convert.ToString(reader["customerLatitude"]).TrimEnd();
+                String customerLongitude = Convert.ToString(reader["customerLongitude"]).TrimEnd();
+                DateTime transactionDate = Convert.ToDateTime(reader["transactionDate"]);
+
+                Transaction transaction = new Transaction(transactionID, contractorID, customerID, cost, contractorFinished, customerFinished, tyreProblem, carBatteryProblem, engineProblem, generalProblem, problemDescription, customerLatitude, customerLongitude, transactionDate);
+
+                res.Add(transaction);
+            }
+
+            conn.Close();
+
+            return res;
+        }
+
+        public static Transaction GetTransactionByID(int transactionID)
+        {
+
+            SqlConnection conn = Helper.Connection.connectionString;
+            conn.Open();
+
+            String getTransactionQuery = "SELECT * FROM dbo.TRANSACTIONS WHERE transactionID = @transactionID ";
+            SqlCommand cmd = new SqlCommand(getTransactionQuery, conn);
+            cmd.Parameters.AddWithValue("@transactionID", transactionID);
+            SqlDataReader reader = cmd.ExecuteReader();
+
+            Transaction res = null;
+            if (reader.Read())
+            {
+                int contractorID = Convert.ToInt32(reader["contractorID"]);
+                int customerID = Convert.ToInt32(reader["customerID"]);
+                double cost = Convert.ToDouble(reader["cost"]);
+
+                Boolean contractorFinished = Convert.ToBoolean(reader["contractorFinished"]);
+                Boolean customerFinished = Convert.ToBoolean(reader["customerFinished"]);
+
+                Boolean tyreProblem = Convert.ToBoolean(reader["tyreProblem"]);
+                Boolean carBatteryProblem = Convert.ToBoolean(reader["carBatteryProblem"]);
+                Boolean engineProblem = Convert.ToBoolean(reader["engineProblem"]);
+                Boolean generalProblem = Convert.ToBoolean(reader["generalProblem"]);
+
+
+                String problemDescription = Convert.ToString(reader["problemDescription"]).TrimEnd();
+                String customerLatitude = Convert.ToString(reader["customerLatitude"]).TrimEnd();
+                String customerLongitude = Convert.ToString(reader["customerLongitude"]).TrimEnd();
+                DateTime transactionDate = Convert.ToDateTime(reader["transactionDate"]);
+
+                res = new Transaction(transactionID, contractorID, customerID, cost, contractorFinished, customerFinished, tyreProblem, carBatteryProblem, engineProblem, generalProblem, problemDescription, customerLatitude, customerLongitude, transactionDate);
+                
+            }
+
+            conn.Close();
+
+            return res;
+        }
+
+
+
+        //
+        public static Boolean IsExistUnfinishedCustomerTransaction(int customerID)
+        {
+            SqlConnection conn = Helper.Connection.connectionString;
+            conn.Open();
+
+            String getTransactionQuery = "SELECT * FROM dbo.TRANSACTIONS WHERE customerID = @customerID and customerFinished = @customerFinished";
+            SqlCommand cmd = new SqlCommand(getTransactionQuery, conn);
+            cmd.Parameters.AddWithValue("@customerID", customerID);
+            cmd.Parameters.AddWithValue("@customerFinished", false);
+            SqlDataReader reader = cmd.ExecuteReader();
+
+            Boolean check = reader.HasRows;
+
+            conn.Close();
+
+            return check;
+        }
+
+        public static Boolean IsExistUnfinishedContractorTransaction(int contractorID)
+        {
+            SqlConnection conn = Helper.Connection.connectionString;
+            conn.Open();
+
+            String getTransactionQuery = "SELECT * FROM dbo.TRANSACTIONS WHERE contractorID = @contractorID and contractorFinished = @contractorFinished";
+            SqlCommand cmd = new SqlCommand(getTransactionQuery, conn);
+            cmd.Parameters.AddWithValue("@contractorID", contractorID);
+            cmd.Parameters.AddWithValue("@contractorFinished", false);
+            SqlDataReader reader = cmd.ExecuteReader();
+
+            Boolean check = reader.HasRows;
+
+            conn.Close();
+
+            return check;
+        }
+
+        //
+        public static void insertNewTransaction(int contractorID, double cost, Request req)
+        {
+            DateTime currentDate = DateTime.Now;
+            String transactionDate = currentDate.ToString("yyyy-MM-dd HH:mm:ss.fff");
+
+            SqlConnection conn = Helper.Connection.connectionString;
+            conn.Open();
+            String insertQuery = "INSERT INTO dbo.TRANSACTIONS(contractorID, customerID, cost, contractorFinished, customerFinished, tyreProblem, carBatteryProblem, engineProblem, generalProblem, problemDescription, customerLatitude, customerLongitude, transactionDate)" +
+                                    "VALUES (@contractorID, @customerID, @cost, @contractorFinished, @customerFinished, @tyreProblem, @carBatteryProblem, @engineProblem, @generalProblem, @problemDescription, @customerLatitude, @customerLongitude, @transactionDate)";
+            SqlCommand cmd = new SqlCommand(insertQuery, conn);
+
+            cmd.Parameters.AddWithValue("@contractorID", contractorID);
+            cmd.Parameters.AddWithValue("@customerID", req.CustomerID);
+            cmd.Parameters.AddWithValue("@cost", cost);
+            cmd.Parameters.AddWithValue("@contractorFinished", false);
+            cmd.Parameters.AddWithValue("@customerFinished", false);
+            
+            cmd.Parameters.AddWithValue("@tyreProblem", req.TyreProblem);
+            cmd.Parameters.AddWithValue("@carBatteryProblem", req.CarBatteryProblem);
+            cmd.Parameters.AddWithValue("@engineProblem", req.EngineProblem);
+            cmd.Parameters.AddWithValue("@generalProblem", req.GeneralProblem);
+
+            cmd.Parameters.AddWithValue("@problemDescription", req.ProblemDescription);
+            cmd.Parameters.AddWithValue("@customerLatitude", req.CustomerLatitude);
+            cmd.Parameters.AddWithValue("@customerLongitude", req.CustomerLongitude);
+            cmd.Parameters.AddWithValue("@transactionDate", transactionDate);
+            cmd.ExecuteNonQuery();
+
+            conn.Close();
+        }
+
+        // 
+        public static void customerFinishedTransaction(int transactionID)
+        {
+            SqlConnection conn = Helper.Connection.connectionString;
+            conn.Open();
+            String updateQuery =    "UPDATE dbo.TRANSACTIONS " +
+                                    "SET customerFinished = 1 " +
+                                    "WHERE transactionID = @transactionID";
+            SqlCommand cmd = new SqlCommand(updateQuery, conn);
+
+            cmd.Parameters.AddWithValue("@transactionID", transactionID);
+            cmd.ExecuteNonQuery();
+
+            conn.Close();
+        }
+
+        public static void contractorFinishedTransaction(int transactionID)
+        {
+            SqlConnection conn = Helper.Connection.connectionString;
+            conn.Open();
+            String updateQuery = "UPDATE dbo.TRANSACTIONS " +
+                                    "SET contractorFinished = 1 " +
+                                    "WHERE transactionID = @transactionID";
+            SqlCommand cmd = new SqlCommand(updateQuery, conn);
+
+            cmd.Parameters.AddWithValue("@transactionID", transactionID);
+            cmd.ExecuteNonQuery();
+
+            conn.Close();
+        }
+    }
+
+
+
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Configuration;
+using System.Data.SqlClient;
+using System.Linq;
+using System.Web;
+using uow_roadside_assistance.Classes;
+
+namespace uow_roadside_assistance.DBData
+{
+    public class UserDBData
+    {
+        // SELECT methods
+        public static int getUserIDFromName(String username)
+        {
+            SqlConnection conn = Helper.Connection.connectionString;
+            conn.Open();
+
+            String getUserNameQuery = "SELECT * FROM dbo.USERS WHERE username = @username";
+            SqlCommand cmd = new SqlCommand(getUserNameQuery, conn);
+            cmd.Parameters.AddWithValue("@username", username);
+            SqlDataReader reader = cmd.ExecuteReader();
+
+            int userID = -1;
+            if (reader.Read())
+            {
+                userID = Convert.ToInt32(reader["userID"]);
+            }
+
+            conn.Close();
+
+            return userID;
+        }
+
+        public static String getUserNameFromID(int userID)
+        {
+            SqlConnection conn = Helper.Connection.connectionString;
+            conn.Open();
+
+            String getUserNameQuery = "SELECT * FROM dbo.USERS WHERE userID = @userID";
+            SqlCommand cmd = new SqlCommand(getUserNameQuery, conn);
+            cmd.Parameters.AddWithValue("@userID", userID);
+            SqlDataReader reader = cmd.ExecuteReader();
+
+            String userName = null;
+            if (reader.Read())
+            {
+                userName = Convert.ToString(reader["username"]).TrimEnd();
+            }
+
+            conn.Close();
+
+            return userName;
+        }
+
+        public static User getUserByName(String username)
+        {
+            SqlConnection conn = Helper.Connection.connectionString;
+            conn.Open();
+
+            String getUserNameQuery = "SELECT * FROM dbo.USERS WHERE username = @username";
+            SqlCommand cmd = new SqlCommand(getUserNameQuery, conn);
+            cmd.Parameters.AddWithValue("@username", username);
+            SqlDataReader reader = cmd.ExecuteReader();
+
+            User res = null;
+            if (reader.Read())
+            {
+                int userID = Convert.ToInt32(reader["userID"]);
+                String userName = username;
+                String email = Convert.ToString(reader["email"]).TrimEnd();
+                String password = Convert.ToString(reader["password"]).TrimEnd();
+                String userType = Convert.ToString(reader["userType"]).TrimEnd();
+                String fullName = Convert.ToString(reader["fullName"]).TrimEnd();
+
+                res = new User(userID, userName, email, password, userType, fullName);
+            }
+
+            conn.Close();
+
+            return res;
+        }
+
+        public static User getUserByID(int userID)
+        {
+            SqlConnection conn = Helper.Connection.connectionString;
+            conn.Open();
+
+            String getUserNameQuery = "SELECT * FROM dbo.USERS WHERE userID = @userID";
+            SqlCommand cmd = new SqlCommand(getUserNameQuery, conn);
+            cmd.Parameters.AddWithValue("@userID", userID);
+            SqlDataReader reader = cmd.ExecuteReader();
+
+            User res = null;
+            if (reader.Read())
+            {
+                String userName = Convert.ToString(reader["username"]).TrimEnd();
+                String email = Convert.ToString(reader["email"]).TrimEnd();
+                String password = Convert.ToString(reader["password"]).TrimEnd();
+                String userType = Convert.ToString(reader["userType"]).TrimEnd();
+                String fullName = Convert.ToString(reader["fullName"]).TrimEnd();
+
+                res = new User(userID, userName, email, password, userType, fullName);
+            }
+
+            conn.Close();
+
+            return res;
+        }
+
+        //
+        public static ArrayList getUsersByUserType(String userType)
+        {
+            SqlConnection conn = Helper.Connection.connectionString;
+            conn.Open();
+
+            String getUsersByUserTypeQuery = "SELECT * FROM dbo.USERS WHERE userType = @userType";
+            SqlCommand cmd = new SqlCommand(getUsersByUserTypeQuery, conn);
+            cmd.Parameters.AddWithValue("@userType", userType);
+            SqlDataReader reader = cmd.ExecuteReader();
+
+            ArrayList res = new ArrayList();
+            while (reader.Read())
+            {
+                int userID = Convert.ToInt32(reader["userID"]);
+                String userName = Convert.ToString(reader["username"]).TrimEnd();
+                String email = Convert.ToString(reader["email"]).TrimEnd();
+                String password = Convert.ToString(reader["password"]).TrimEnd();
+                // userType
+                String fullName = Convert.ToString(reader["fullName"]).TrimEnd();
+
+                User user = new User(userID, userName, email, password, userType, fullName);
+                res.Add(user);
+            }
+
+            conn.Close();
+
+            return res;
+        }
+
+        // Check existence
+
+        public static Boolean IsExist(String username, String password)
+        {
+            SqlConnection conn = Helper.Connection.connectionString;
+            conn.Open();
+
+            String getUserByNameQuery = "SELECT * FROM dbo.USERS WHERE username = @username and password = @password";
+            SqlCommand cmd = new SqlCommand(getUserByNameQuery, conn);
+            cmd.Parameters.AddWithValue("@username", username);
+            cmd.Parameters.AddWithValue("@password", password);
+            SqlDataReader reader = cmd.ExecuteReader();
+
+            Boolean check = reader.HasRows;
+
+            conn.Close();
+
+            return check;
+        }
+
+        public static Boolean IsExist(String username)
+        {
+            SqlConnection conn = Helper.Connection.connectionString;
+            conn.Open();
+
+            String getUserByNameQuery = "SELECT * FROM dbo.USERS WHERE username = @username";
+            SqlCommand cmd = new SqlCommand(getUserByNameQuery, conn);
+            cmd.Parameters.AddWithValue("@username", username);
+            SqlDataReader reader = cmd.ExecuteReader();
+
+            Boolean check = reader.HasRows;
+
+            conn.Close();
+
+            return check;
+        }
+
+        // INSERT
+
+        public static void insertNewUser(String username, String email, String password, String userType, String fullName)
+        {
+            SqlConnection conn = Helper.Connection.connectionString;
+            conn.Open();
+            String insertQuery = "INSERT INTO dbo.USERS(username, email, password, userType, fullName)" +
+                                    "VALUES (@username, @email, @password, @userType, @fullName)";
+            SqlCommand cmd = new SqlCommand(insertQuery, conn);
+
+            cmd.Parameters.AddWithValue("@username", username);
+            cmd.Parameters.AddWithValue("@email", email);
+            cmd.Parameters.AddWithValue("@password", password);
+            cmd.Parameters.AddWithValue("@userType", userType);
+            cmd.Parameters.AddWithValue("@fullName", fullName);
+            cmd.ExecuteNonQuery();
+
+            conn.Close();
+        }
+
+        // UPDATE
+
+        public static void updateUserEmailByID(int userID, String email)
+        {
+            SqlConnection conn = Helper.Connection.connectionString;
+            conn.Open();
+
+            String updateUserQuery = "UPDATE dbo.USERS SET email = @email WHERE userID = @userID";
+            SqlCommand cmd = new SqlCommand(updateUserQuery, conn);
+            cmd.Parameters.AddWithValue("@userID", userID);
+            cmd.Parameters.AddWithValue("@email", email);
+            cmd.ExecuteNonQuery();
+            conn.Close();
+        }
+
+        public static void updateUserPasswordByID(int userID, String password)
+        {
+            SqlConnection conn = Helper.Connection.connectionString;
+            conn.Open();
+
+            String updateUserQuery = "UPDATE dbo.USERS SET password = @password WHERE userID = @userID";
+            SqlCommand cmd = new SqlCommand(updateUserQuery, conn);
+            cmd.Parameters.AddWithValue("@userID", userID);
+            cmd.Parameters.AddWithValue("@password", password);
+            cmd.ExecuteNonQuery();
+            conn.Close();
+        }
+
+        // DELETE
+        public static void deleteUserByUserID(int userID)
+        {
+            SqlConnection conn = Helper.Connection.connectionString;
+            conn.Open();
+
+            String updateUserQuery = "DELETE FROM dbo.USERS WHERE userID = @userID";
+            SqlCommand cmd = new SqlCommand(updateUserQuery, conn);
+            cmd.Parameters.AddWithValue("@userID", userID);
+            cmd.ExecuteNonQuery();
+            conn.Close();
+        }
+
+    }
+}

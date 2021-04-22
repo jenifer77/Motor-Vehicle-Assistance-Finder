@@ -1,0 +1,646 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.28307.438
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "uow-roadside-assistance", "uow-roadside-assistance\uow-roadside-assistance.csproj", "{0E1728CF-9FAD-46B8-8FE8-8250AA18F60B}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{0E1728CF-9FAD-46B8-8FE8-8250AA18F60B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0E1728CF-9FAD-46B8-8FE8-8250AA18F60B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0E1728CF-9FAD-46B8-8FE8-8250AA18F60B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0E1728CF-9FAD-46B8-8FE8-8250AA18F60B}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {2E3CA358-67E3-47B3-9F75-A396ACD38919}
+	EndGlobalSection
+EndGlobal
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web;
+
+namespace uow_roadside_assistance.Classes
+{
+    public class Address
+    {
+        protected int _userID;
+        public int UserID
+        {
+            get { return _userID; }
+        }
+
+        protected String _latitude;
+        public String Latitude
+        {
+            get { return _latitude; }
+        }
+
+        protected String _longitude;
+        public String Longitude
+        {
+            get { return _longitude; }
+        }
+
+        protected String _userType;
+        public String UserType
+        {
+            get { return _userType; }
+        }
+
+        public Address(int userID, String latitude, String longitude, String userType)
+        {
+            _userID = userID;
+            _latitude = latitude;
+            _longitude = longitude;
+            _userType = userType;
+        }
+        
+    }
+}
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web;
+
+namespace uow_roadside_assistance.Classes
+{
+    public class Contractor : User
+    {
+        private String _accountName;
+        public String AccountName
+        {
+            get { return _accountName; }
+        }
+
+        private String _accountNumber;
+        public String AccountNumber
+        {
+            get { return _accountNumber; }
+        }
+
+        private int _BSB;
+        public int BSB
+        {
+            get { return _BSB; }
+        }
+
+        public Contractor(int userID, String username, String email, String password, String userType, String fullName, String accountName, String accountNumber, int bsb) : base(userID, username, email, password, userType, fullName)
+        {
+            _accountName = accountName;
+            _accountNumber = accountNumber;
+            _BSB = bsb;
+        }
+    }
+}
+
+using System;
+using System.Collections.Generic;
+using System.Configuration;
+using System.Data.SqlClient;
+using System.Linq;
+using System.Web;
+
+namespace uow_roadside_assistance.Classes
+{
+    public class Customer : User
+    {
+        private String _regNo;
+        public String RegNo
+        {
+            get { return _regNo; }
+        }
+
+        private String _make;
+        public String Make
+        {
+            get { return _make; }
+        }
+
+        private String _model;
+        public String Model
+        {
+            get { return _model; }
+        }
+
+        private String _color;
+        public String Color
+        {
+            get { return _color; }
+        }
+
+        private String _cardHolder;
+        public String CardHolder
+        {
+            get { return _cardHolder; }
+        }
+
+        private String _cardNo;
+        public String CardNo
+        {
+            get { return _cardNo; }
+        }
+
+        private int _expMonth;
+        public int ExpMonth
+        {
+            get { return _expMonth; }
+        }
+
+        private int _expYear;
+        public int ExpYear
+        {
+            get { return _expYear; }
+        }
+
+        public String ExpiryDate
+        {
+            get { return full(_expMonth) + "/" + full(_expYear); }
+        }
+
+        private String full(int exp)
+        {
+            String res = exp.ToString();
+            if (res.Length == 1)
+                res = "0" + res;
+            return res;
+        }
+
+        private int _CVV;
+        public int CVV
+        {
+            get { return _CVV; }
+        }
+
+        private String _memberStatus;
+        public String MemberStatus
+        {
+            get { return _memberStatus; }
+        }
+
+        private DateTime _subExpDate;
+        public DateTime SubExpDate
+        {
+            get { return _subExpDate; }
+        }
+
+        public String SubExpDateToString
+        {
+            get { return _subExpDate.ToString("yyyy/MM/dd"); }
+        }
+
+        private Boolean _subCancelled;
+        public Boolean SubCancelled
+        {
+            get { return _subCancelled; }
+        }
+
+        public Customer(int userID, String username, String email, String password, String userType, String fullName, String regNo, String make, String model, String color, String cardHolder, String cardNo, int expMonth, int expYear, int CVV) : base(userID, username, email, password, userType, fullName)
+        {
+            _regNo = regNo;
+            _make = make;
+            _model = model;
+            _color = color;
+            _cardHolder = cardHolder;
+            _cardNo = cardNo;
+            _expMonth = expMonth;
+            _expYear = expYear;
+            _CVV = CVV;
+        }
+
+        public Customer(int userID, String username, String email, String password, String userType, String fullName, String regNo, String make, String model, String color, String cardHolder, String cardNo, int expMonth, int expYear, int CVV, String memberStatus, DateTime subExpDate, Boolean subCancelled) : base(userID, username, email, password, userType, fullName)
+        {
+            _regNo = regNo;
+            _make = make;
+            _model = model;
+            _color = color;
+            _cardHolder = cardHolder;
+            _cardNo = cardNo;
+            _expMonth = expMonth;
+            _expYear = expYear;
+            _CVV = CVV;
+            _memberStatus = memberStatus;
+            _subExpDate = subExpDate;
+            _subCancelled = subCancelled;
+        }
+    }
+}
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web;
+
+namespace uow_roadside_assistance.Classes
+{
+    public class Request
+    {
+        private int _requestID;
+        public int RequestID
+        {
+            get { return _requestID; }
+        }
+
+        private int _customerID;
+        public int CustomerID
+        {
+            get { return _customerID; }
+        }
+
+        private Boolean _tyreProblem;
+        public Boolean TyreProblem
+        {
+            get { return _tyreProblem; }
+        }
+
+        private Boolean _carBatteryProblem;
+        public Boolean CarBatteryProblem
+        {
+            get { return _carBatteryProblem; }
+        }
+
+        private Boolean _engineProblem;
+        public Boolean EngineProblem
+        {
+            get { return _engineProblem; }
+        }
+
+        private Boolean _generalProblem;
+        public Boolean GeneralProblem
+        {
+            get { return _generalProblem; }
+        }
+
+        private String _problemDescription;
+        public String ProblemDescription
+        {
+            get { return _problemDescription; }
+        }
+
+        private String _customerLatitude;
+        public String CustomerLatitude
+        {
+            get { return _customerLatitude; }
+        }
+        
+        private String _customerLongitude;
+        public String CustomerLongitude
+        {
+            get { return _customerLongitude; }
+        }
+
+        private String _requestStatus;
+        public String RequestStatus
+        {
+            get { return _requestStatus; }
+        }
+
+        private DateTime _requestDate;
+        public DateTime RequestDate
+        {
+            get { return _requestDate; }
+        }
+
+        public Request(int requestID, int customerID, Boolean tyreProblem, Boolean carBatterProblem, Boolean engineProblem, Boolean generalProblem, String problemDescription, String customerLatitude, String customerLongitude, String requestStatus, DateTime requestDate)
+        {
+            _requestID = requestID;
+            _customerID = customerID;
+
+            _tyreProblem = tyreProblem;
+            _carBatteryProblem = carBatterProblem;
+            _engineProblem = engineProblem;
+            _generalProblem = generalProblem;
+
+            _problemDescription = problemDescription;
+            _customerLatitude = customerLatitude;
+            _customerLongitude = customerLongitude;
+            _requestStatus = requestStatus;
+            _requestDate = requestDate;
+        }
+    }
+}
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web;
+
+namespace uow_roadside_assistance.Classes
+{
+    public class Response
+    {
+        private int _responseID;
+        public int ResponseID
+        {
+            get { return _responseID; }
+        }
+
+        private int _requestID;
+        public int RequestID
+        {
+            get { return _requestID; }
+        }
+
+        private int _contractorID;
+        public int ContractorID
+        {
+            get { return _contractorID; }
+        }
+
+        private String _responseStatus;
+        public String ResponseStatus
+        {
+            get { return _responseStatus; }
+        }
+
+        public Response(int responseID, int requestID, int contractorID, String responseStatus)
+        {
+            _responseID = responseID;
+            _requestID = requestID;
+            _contractorID = contractorID;
+            _responseStatus = responseStatus;
+        }
+    }
+}
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web;
+
+namespace uow_roadside_assistance.Classes
+{
+    public class Review
+    {
+        private int _reviewID;
+        public int ReviewID
+        {
+            get { return _reviewID; }
+        }
+
+        private String _reviewDesc;
+        public String ReviewDesc
+        {
+            get { return _reviewDesc; }
+        }
+
+        private double _rating;
+        public double Rating
+        {
+            get { return _rating; }
+        }
+
+        private int _transactionID;
+        public int TransactionID
+        {
+            get { return _transactionID; }
+        }
+
+        private int _customerID;
+        public int CustomerID
+        {
+            get { return _customerID; }
+        }
+
+        private int _contractorID;
+        public int ContractorID
+        {
+            get { return _contractorID; }
+        }
+
+        private DateTime _reviewDate;
+        public DateTime ReviewDate
+        {
+            get { return _reviewDate; }
+        }
+
+        public String ReviewDateToString
+        {
+            get { return _reviewDate.ToString("yyyy/MM/dd HH:mm:ss"); }
+        }
+
+        private Boolean _appeal;
+        public Boolean Appeal
+        {
+            get { return _appeal; }
+        }
+
+        private String _reason;
+        public String Reason
+        {
+            get { return _reason; }
+        }
+
+        public Review(int reviewID, String reviewDesc, double rating, int transactionID, int customerID, int contractorID, DateTime reviewDate)
+        {
+            _reviewID = reviewID;
+            _reviewDesc = reviewDesc;
+            _rating = rating;
+            _transactionID = transactionID;
+            _customerID = customerID;
+            _contractorID = contractorID;
+            _reviewDate = reviewDate;
+        }
+
+        public Review(int reviewID, String reviewDesc, double rating, int transactionID, int customerID, int contractorID, DateTime reviewDate, Boolean appeal, String reason)
+        {
+            _reviewID = reviewID;
+            _reviewDesc = reviewDesc;
+            _rating = rating;
+            _transactionID = transactionID;
+            _customerID = customerID;
+            _contractorID = contractorID;
+            _reviewDate = reviewDate;
+            _appeal = appeal;
+            _reason = reason;
+        }
+    }
+}
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web;
+
+namespace uow_roadside_assistance.Classes
+{
+    public class Transaction
+    {
+        private int _transactionID;
+        public int TransactionID
+        {
+            get { return _transactionID; }
+        }
+
+        private int _contractorID;
+        public int ContractorID
+        {
+            get { return _contractorID; }
+        }
+
+        private int _customerID;
+        public int CustomerID
+        {
+            get { return _customerID; }
+        }
+
+        private double _cost;
+        public double Cost
+        {
+            get { return _cost; }
+        }
+
+        private Boolean _contractorFinished;
+        public Boolean ContractorFinished
+        {
+            get { return _contractorFinished; }
+        }
+
+        private Boolean _customerFinished;
+        public Boolean CustomerFinished
+        {
+            get { return _customerFinished; }
+        }
+
+        private Boolean _tyreProblem;
+        public Boolean TyreProblem
+        {
+            get { return _tyreProblem; }
+        }
+
+        private Boolean _carBatteryProblem;
+        public Boolean CarBatteryProblem
+        {
+            get { return _carBatteryProblem; }
+        }
+
+        private Boolean _engineProblem;
+        public Boolean EngineProblem
+        {
+            get { return _engineProblem; }
+        }
+
+        private Boolean _generalProblem;
+        public Boolean GeneralProblem
+        {
+            get { return _generalProblem; }
+        }
+
+        private String _problemDescription;
+        public String ProblemDescription
+        {
+            get { return _problemDescription; }
+        }
+
+        private String _customerLatitude;
+        public String CustomerLatitude
+        {
+            get { return _customerLatitude; }
+        }
+
+        private String _customerLongitude;
+        public String CustomerLongitude
+        {
+            get { return _customerLongitude; }
+        }
+
+        private DateTime _transactionDate;
+        public DateTime TransactionDate
+        {
+            get { return _transactionDate; }
+        }
+
+        public String TransactionDateToString
+        {
+            get { return _transactionDate.ToString("yyyy/MM/dd HH:mm:ss"); }
+        }
+
+        public Transaction(int transactionID, int contractorID, int customerID, double cost, Boolean contractorFinished, Boolean customerFinished, Boolean tyreProblem, Boolean carBatterProblem, Boolean engineProblem, Boolean generalProblem, String problemDescription, String customerLatitude, String customerLongitude, DateTime transactionDate)
+        {
+            _transactionID = transactionID;
+            _contractorID = contractorID;
+            _customerID = customerID;
+            _cost = cost;
+            _contractorFinished = contractorFinished;
+            _customerFinished = customerFinished;
+
+            _tyreProblem = tyreProblem;
+            _carBatteryProblem = carBatterProblem;
+            _engineProblem = engineProblem;
+            _generalProblem = generalProblem;
+
+            _problemDescription = problemDescription;
+            _customerLatitude = customerLatitude;
+            _customerLongitude = customerLongitude;
+            _transactionDate = transactionDate;
+        }
+    }
+}
+
+using System;
+using System.Collections.Generic;
+using System.Configuration;
+using System.Data.SqlClient;
+using System.Linq;
+using System.Web;
+
+namespace uow_roadside_assistance.Classes
+{
+    public class User
+    {
+        protected int _userID;
+        public int UserID
+        {
+            get { return _userID; }
+        }
+
+        protected String _userName;
+        public String UserName
+        {
+            get { return _userName; }
+        }
+
+        protected String _email;
+        public String Email
+        {
+            get { return _email; }
+        }
+
+        protected String _password;
+        public String Password
+        {
+            get { return _password; }
+        }
+
+        protected String _userType;
+        public String UserType
+        {
+            get { return _userType; }
+        }
+
+        protected String _fullName;
+        public String FullName
+        {
+            get { return _fullName; }
+        }
+
+        public User(int userID, String username, String email, String password, String userType, String fullName)
+        {
+            _userID = userID;
+            _userName = username;
+            _email = email;
+            _password = password;
+            _userType = userType;
+            _fullName = fullName;
+        }
+    }
+}
